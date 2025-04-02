@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2285965683397124340}
   - component: {fileID: 8295987999507191478}
   m_Layer: 0
-  m_Name: HourIndicatorSpawner
+  m_Name: IndicatorSpawner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -45,4 +45,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _HourIndicatorPrefab: {fileID: 3052421276117054432, guid: 0cf005f167c6146cdb094842f2500965, type: 3}
+  _MinuteSecondIndicatorPrefab: {fileID: 3052421276117054432, guid: 29cab08e9d0ec41c2887ce446109304a, type: 3}
   _radius: 4
