@@ -11,6 +11,9 @@ public class Surfaces : MonoBehaviour
     const float MAXFREQUENCY = 4f;
     const float FREQUENCY = 1f;
 
+    public event Action OnInitialize;
+    public event Action OnInspectorChange;
+
     [SerializeField] Transform pointPrefab;
     [SerializeField] WaveFunctionLibrary.WaveFunctionName waveFunctionName = WaveFunctionLibrary.WaveFunctionName.Wave; 
     WaveFunctionLibrary.WaveFunctionName previousWaveFunctionName = WaveFunctionLibrary.WaveFunctionName.Wave;
@@ -83,6 +86,7 @@ public class Surfaces : MonoBehaviour
         if (previousWaveFunctionName != waveFunctionName) {
             waveFunction = WaveFunctionLibrary.GetFunction(waveFunctionName);
             previousWaveFunctionName = waveFunctionName;
+            StartCoroutine(CoroutineLibrary.WaitSeconds(1f, OnInspectorChange));
         }
     }
 
@@ -95,6 +99,7 @@ public class Surfaces : MonoBehaviour
             else 
                 for (int i = currentSize - 1; i >= activeSize; i--) points[i].gameObject.SetActive(false);
             previousResolution = resolution;
+            StartCoroutine(CoroutineLibrary.WaitSeconds(1f, OnInspectorChange));
         }
     } 
 
@@ -106,6 +111,9 @@ public class Surfaces : MonoBehaviour
     void Start() {
         waveFunction = WaveFunctionLibrary.GetFunction(waveFunctionName);
         CreatePoints();
+        CalculatePointsXZ();
+        CalculatePointsY();
+        StartCoroutine(CoroutineLibrary.WaitSeconds(1f, OnInitialize));
 	}
 
     void Update() {
