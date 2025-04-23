@@ -301,7 +301,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 90
+  field of view: 60
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -328,7 +328,7 @@ Transform:
   m_GameObject: {fileID: 969084556}
   serializedVersion: 2
   m_LocalRotation: {x: 0.35355338, y: 0.35355338, z: -0.1464466, w: 0.8535535}
-  m_LocalPosition: {x: -2, y: 2, z: -2}
+  m_LocalPosition: {x: -2, y: 3, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -392,7 +392,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7467232756778039025, guid: 33c35a4d0da55439dbf531b435ca31c5, type: 3}
       propertyPath: resolution
-      value: 32
+      value: 128
+      objectReference: {fileID: 0}
+    - target: {fileID: 7467232756778039025, guid: 33c35a4d0da55439dbf531b435ca31c5, type: 3}
+      propertyPath: transitionMode
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7467232756778039025, guid: 33c35a4d0da55439dbf531b435ca31c5, type: 3}
       propertyPath: waveFunctionName
