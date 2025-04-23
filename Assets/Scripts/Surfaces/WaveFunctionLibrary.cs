@@ -12,6 +12,19 @@ public static class WaveFunctionLibrary
         return functions[(int)name];
     }
 
+    public static WaveFunctionName GetNextFunctionName (WaveFunctionName name) {
+        return ((int)name < functions.Length - 1) ? name + 1 : 0;
+    }
+
+    public static WaveFunctionName GetRandomFunctionNameOtherThan (WaveFunctionName name) {
+        var choice = (WaveFunctionName)Random.Range(1, functions.Length);
+        return choice == name ? 0 : choice;
+    }
+
+    public static Vector3 Morph(float u, float v, float t, float f, WaveFunction from, WaveFunction to, float progress) {
+        return Vector3.LerpUnclamped(from(u, v, t, f), to(u, v, t, f), SmoothStep(0f, 1f, progress));
+    }
+
     public static Vector3 Wave(float u, float v, float t, float f) {
         Vector3 p;
         p.x = u;
@@ -45,7 +58,7 @@ public static class WaveFunctionLibrary
     }
 
     public static Vector3 Sphere (float u, float v, float t, float f) {
-        float r = 0.5f + 0.5f * Sin(PI * t * f);
+        float r = 0.75f + 0.25f * Sin(PI * t * f);
         float s = r * Cos(0.5f * PI * v);
         Vector3 p;
         // f(u, v) = [s * sin(pi * u), r * sin(pi/2 * v), s * cos(pi/u)]
@@ -68,8 +81,9 @@ public static class WaveFunctionLibrary
     }
 
     public static Vector3 RingTorus (float u, float v, float t, float f) {
-	    float majorR = 0.75f;
-		float minorR = 0.25f;
+        float r = 0.75f + 0.25f * Sin(PI * t * f);
+	    float majorR = r * 0.75f;
+		float minorR = r * 0.25f;
 		float s = majorR + minorR * Cos(PI * v);
 		Vector3 p;
 		p.x = s * Sin(PI * u);

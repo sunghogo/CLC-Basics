@@ -10,21 +10,26 @@ public class Surfaces : MonoBehaviour
     const float WIDTH = 2f;
     const float MAXFREQUENCY = 4f;
     const float FREQUENCY = 1f;
+    const float FPSDELAY = 1f;
 
     public event Action OnInitialize;
     public event Action OnInspectorChange;
 
     [SerializeField] Transform pointPrefab;
-    [SerializeField] WaveFunctionLibrary.WaveFunctionName waveFunctionName = WaveFunctionLibrary.WaveFunctionName.Wave; 
-    WaveFunctionLibrary.WaveFunctionName previousWaveFunctionName = WaveFunctionLibrary.WaveFunctionName.Wave;
+    [SerializeField] WaveFunctionLibrary.WaveFunctionName waveFunctionName, transitionWaveFunctionName;
+    WaveFunctionLibrary.WaveFunction waveFunction, transitionWaveFunction;
+    public enum TransitionMode { Stop, Cycle, Random };
+    [SerializeField] TransitionMode transitionMode;
+    [SerializeField, Min(0f)] float functionDuration = 2f, transitionDuration = 1f;
     [SerializeField, Range(16, MAXRESOLUTION)] int resolution = RESOLUTION;
     int previousResolution = RESOLUTION;
     [SerializeField, Range(1, MAXWIDTH)] float width = WIDTH;
     [SerializeField, Range(0.2f, MAXFREQUENCY)] float frequency = FREQUENCY;
     GameObject pointsContainer; // Needed to safely destroy all points
     List<Transform> points;
-    WaveFunctionLibrary.WaveFunction waveFunction;
-
+    float duration = 0f;
+    bool isTransitioning;
+    
     void CreatePoints() {
         if (pointsContainer != null) DestroyImmediate(pointsContainer.gameObject);
 
@@ -47,7 +52,8 @@ public class Surfaces : MonoBehaviour
         }
     }
     
-    void CalculatePointsXZ() {
+    void CalculatePoints() {
+        float time = Time.time;
         float step = width / resolution;
         Vector3 scale = Vector3.one * step;
         int activeSize = resolution * resolution;
@@ -60,17 +66,29 @@ public class Surfaces : MonoBehaviour
             float u = (x + 0.5f) * step - (0.5f * width);
             float v = (z + 0.5f) * step - (0.5f * width);
             Vector3 position = new Vector3(u, 0, v);
+            position = waveFunction(position.x, position.z, time, frequency);
             points[i].localPosition = position;
             points[i].localScale = scale;
 		}
     }
 
-    void CalculatePointsY() {
+    void CalculateTransitioningPoints() {
         float time = Time.time;
+        float progress = duration / transitionDuration;
+        float step = width / resolution;
+        Vector3 scale = Vector3.one * step;
         int activeSize = resolution * resolution;
-        for (int i = 0; i < activeSize; i++) {
-            Vector3 position = points[i].localPosition;
-			points[i].localPosition = waveFunction(position.x, position.z, time, frequency);
+		for (int i = 0, x = 0, z = 0; i < activeSize; i++, x++) {
+            if (x == resolution) {
+                x = 0;
+                z += 1;
+            }
+            // Adjusts so points are adjacent and shifted half a step to fit the entire width. Fixes points between -width < x < width
+            float u = (x + 0.5f) * step - (0.5f * width);
+            float v = (z + 0.5f) * step - (0.5f * width);
+            Vector3 position = WaveFunctionLibrary.Morph(u, v, time, frequency, waveFunction, transitionWaveFunction, progress);
+            points[i].localPosition = position;
+            points[i].localScale = scale;
         }
     }
 
@@ -82,11 +100,11 @@ public class Surfaces : MonoBehaviour
         }
     }
 
-    void UpdateWaveFunctionName() {
-        if (previousWaveFunctionName != waveFunctionName) {
-            waveFunction = WaveFunctionLibrary.GetFunction(waveFunctionName);
-            previousWaveFunctionName = waveFunctionName;
-            StartCoroutine(CoroutineLibrary.WaitSeconds(1f, OnInspectorChange));
+    void UpdateWaveFunction() {
+        if (waveFunctionName != transitionWaveFunctionName && !isTransitioning) {
+            waveFunctionName = transitionWaveFunctionName;
+            waveFunction = transitionWaveFunction;
+            StartCoroutine(CoroutineLibrary.WaitSeconds(FPSDELAY, OnInspectorChange));
         }
     }
 
@@ -99,26 +117,55 @@ public class Surfaces : MonoBehaviour
             else 
                 for (int i = currentSize - 1; i >= activeSize; i--) points[i].gameObject.SetActive(false);
             previousResolution = resolution;
-            StartCoroutine(CoroutineLibrary.WaitSeconds(1f, OnInspectorChange));
+            StartCoroutine(CoroutineLibrary.WaitSeconds(FPSDELAY, OnInspectorChange));
         }
     } 
 
     void RefreshInspectorChanges() {
-        UpdateWaveFunctionName();
+        UpdateWaveFunction();
         UpdateResolution();
     }
 
+    void PickNextWaveFunction() {
+        switch (transitionMode) {
+            case TransitionMode.Cycle:
+                transitionWaveFunctionName = WaveFunctionLibrary.GetNextFunctionName(transitionWaveFunctionName);
+                transitionWaveFunction = WaveFunctionLibrary.GetFunction(transitionWaveFunctionName);
+                break;
+            case TransitionMode.Random:
+                transitionWaveFunctionName = WaveFunctionLibrary.GetRandomFunctionNameOtherThan(transitionWaveFunctionName);
+                transitionWaveFunction = WaveFunctionLibrary.GetFunction(transitionWaveFunctionName);
+                break;
+            default:
+                break;
+        }
+    }
+
     void Start() {
-        waveFunction = WaveFunctionLibrary.GetFunction(waveFunctionName);
+        transitionMode = TransitionMode.Random;
+        transitionWaveFunctionName = waveFunctionName = WaveFunctionLibrary.WaveFunctionName.Wave;
+        transitionWaveFunction = waveFunction = WaveFunctionLibrary.GetFunction(transitionWaveFunctionName);
         CreatePoints();
-        CalculatePointsXZ();
-        CalculatePointsY();
+        CalculatePoints();
         StartCoroutine(CoroutineLibrary.WaitSeconds(1f, OnInitialize));
 	}
 
     void Update() {
+        duration += Time.deltaTime;
+        if (transitionDuration > functionDuration) transitionDuration = functionDuration;
+        if (duration >= functionDuration) {
+            duration -= functionDuration;
+            PickNextWaveFunction();
+            if (waveFunctionName != transitionWaveFunctionName) isTransitioning = true;
+        } else if (duration >= transitionDuration) {
+            isTransitioning = false;
+        }
+
         RefreshInspectorChanges();
-        CalculatePointsXZ();
-        CalculatePointsY();
+        if (isTransitioning) {
+            CalculateTransitioningPoints();
+        } else {
+            CalculatePoints();
+        }
     }
 }
